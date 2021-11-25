@@ -1,43 +1,39 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.Mvc;
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<ItemRepository>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.MapGet("/items", ([FromServices] ItemRepository items) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    return items.Getall();
+});
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateTime.Now.AddDays(index),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
+app.MapGet("/", () => "Iniciando API Reminder");
 app.Run();
 
-record WeatherForecast(DateTime Date, int TemperatureC, string? Summary)
+
+record Item(Guid id, string title, DateTime data, bool IsCompleted);
+
+class ItemRepository
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    private Dictionary<Guid, Item> items = new Dictionary<Guid, Item>();
+    public ItemRepository()
+    {
+
+        var firstItem = new Item(Guid.NewGuid(), "First item", DateTime.Now, false);
+        var secondItem = new Item(Guid.NewGuid(), "Second item", DateTime.Now, false);
+        var thirdItem = new Item(Guid.NewGuid(), "Third item", DateTime.Now, false);
+
+        items.Add(firstItem.id, firstItem);
+        items.Add(secondItem.id, secondItem);
+        items.Add(thirdItem.id, thirdItem);
+    }
+
+    public IEnumerable<Item> Getall() => items.Values;
+    public Item GetById(Guid id) => items[id];
+    public void Add(Item item) => items.Add(item.id, item);
+    public void Update(Item item) => items[item.id] = item;
+    public void Delete(Guid id) => items.Remove(id);
 }
